@@ -73,6 +73,34 @@ class CurrentUserView(APIView):
         )
 
 
+class ApiIndexView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response(
+            {
+                "status": "ok",
+                "message": "StableMoney API is running.",
+                "endpoints": {
+                    "health": "/api/health/",
+                    "signup": "/api/users/signup/",
+                    "login": "/api/token/",
+                    "token_refresh": "/api/token/refresh/",
+                    "sip": "/api/sip/",
+                    "track": "/api/track/",
+                    "lead": "/api/lead/",
+                },
+            }
+        )
+
+
+class HealthCheckView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({"status": "ok"})
+
+
 class SIPCalculateView(APIView):
     permission_classes = [IsAuthenticated]
 

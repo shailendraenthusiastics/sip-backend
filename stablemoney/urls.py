@@ -2,10 +2,12 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from core.views import (
+    ApiIndexView,
     CurrentUserView,
     CustomTokenObtainPairView,
     ExportAffiliateClicksCSVView,
     ExportLeadsCSVView,
+    HealthCheckView,
     LeadCaptureView,
     MonetizationSummaryView,
     SIPCalculateView,
@@ -15,6 +17,8 @@ from core.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/", ApiIndexView.as_view(), name="api-index"),
+    path("api/health/", HealthCheckView.as_view(), name="health-check"),
     path("api/users/me/", CurrentUserView.as_view(), name="current-user"),
     path("api/users/signup/", SignupView.as_view(), name="signup"),
     path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
