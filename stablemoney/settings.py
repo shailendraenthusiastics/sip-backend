@@ -13,7 +13,9 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    for host in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,.onrender.com").split(
+        ","
+    )
     if host.strip()
 ]
 
@@ -104,6 +106,9 @@ CORS_ALLOWED_ORIGINS = [
     for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",")
     if origin.strip()
 ]
+
+if not DEBUG:
+    CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.vercel\.app$"]
 
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
