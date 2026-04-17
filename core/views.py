@@ -1,6 +1,7 @@
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import timedelta
 import csv
+import logging
 
 from django.db import IntegrityError
 from django.http import HttpResponse
@@ -10,6 +11,8 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+logger = logging.getLogger(__name__)
 
 from .models import AffiliateClick, Calculation, Lead
 from .serializers import (
@@ -64,9 +67,18 @@ class CustomTokenObtainPairView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = CustomTokenObtainPairSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        try:
+            serializer = CustomTokenObtainPairSerializer(data=request.data)
+            if not serializer.is_valid():
+                logger.error(f"Token serializer validation failed: {serializer.errors}")
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.exception(f"Token endpoint error: {str(e)}")
+            return Response(
+                {"detail": "An error occurred during authentication."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class CurrentUserView(APIView):
