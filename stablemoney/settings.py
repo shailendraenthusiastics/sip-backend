@@ -75,9 +75,20 @@ if DATABASE_URL:
 else:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
+            "NAME": os.getenv("DB_NAME"),
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
+            "HOST": os.getenv("DB_HOST", "localhost"),
+            "PORT": os.getenv("DB_PORT", "5432"),
         }
+    }
+
+legacy_sqlite_db = BASE_DIR / "db.sqlite3"
+if legacy_sqlite_db.exists():
+    DATABASES["sqlite"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": legacy_sqlite_db,
     }
 
 AUTH_PASSWORD_VALIDATORS = [
