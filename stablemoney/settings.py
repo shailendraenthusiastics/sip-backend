@@ -76,7 +76,12 @@ TEMPLATES = [
 WSGI_APPLICATION = "stablemoney.wsgi.application"
 ASGI_APPLICATION = "stablemoney.asgi.application"
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = (os.getenv("DATABASE_URL") or "").strip()
+
+if IS_RENDER and not DATABASE_URL:
+    raise ImproperlyConfigured(
+        "DATABASE_URL is required on Render. Set it from your Render Postgres connection string."
+    )
 
 if DATABASE_URL:
     DATABASES = {
