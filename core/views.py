@@ -2,6 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from datetime import timedelta
 import csv
 
+from django.db import IntegrityError
 from django.http import HttpResponse
 from django.db.models import Count
 from django.utils import timezone
@@ -44,7 +45,13 @@ class SignupView(APIView):
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        try:
+            user = serializer.save()
+        except IntegrityError:
+            return Response(
+                {"detail": "A user with this username or email already exists."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(
             {
                 "message": "Account created successfully.",
