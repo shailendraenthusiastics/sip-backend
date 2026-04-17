@@ -3,6 +3,7 @@ import os
 from datetime import timedelta
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -83,6 +84,18 @@ else:
             "PORT": os.getenv("DB_PORT", "5432"),
         }
     }
+
+if DATABASES["default"]["ENGINE"].endswith("postgresql") and not DATABASE_URL:
+    required_postgres_vars = ["DB_NAME", "DB_USER", "DB_PASSWORD"]
+    missing_postgres_vars = [
+        var for var in required_postgres_vars if not os.getenv(var)
+    ]
+    if missing_postgres_vars:
+        raise ImproperlyConfigured(
+            "Missing PostgreSQL environment variables: "
+            + ", ".join(missing_postgres_vars)
+            + ". Set DATABASE_URL or DB_NAME, DB_USER, DB_PASSWORD in backend/.env."
+        )
 
 legacy_sqlite_db = BASE_DIR / "db.sqlite3"
 if legacy_sqlite_db.exists():
