@@ -3,7 +3,6 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import AffiliateClick, Calculation, Lead
 
@@ -37,24 +36,13 @@ class SignupSerializer(serializers.ModelSerializer):
         return user
 
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username = serializers.CharField(required=False, write_only=True)
+class CustomTokenObtainPairSerializer(serializers.Serializer):
     username_or_email = serializers.CharField(write_only=True)
     password = serializers.CharField(write_only=True)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # TokenObtainPairSerializer injects USERNAME_FIELD as required by default.
-        # We authenticate via username_or_email, so relax that inherited field.
-        if self.username_field in self.fields:
-            self.fields[self.username_field].required = False
-            self.fields[self.username_field].allow_blank = True
-
     def validate(self, attrs):
-        identifier = (
-            attrs.pop("username_or_email", None) or attrs.get("username") or ""
-        ).strip()
-        password = attrs.get("password")
+        identifier = attrs.get("username_or_email", "").strip()
+        password = attrs.get("password", "")
 
         if not identifier:
             raise serializers.ValidationError(
@@ -74,17 +62,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise serializers.ValidationError("User account is disabled.")
 
         refresh = RefreshToken.for_user(user)
-        data = {
+        return {
             "refresh": str(refresh),
             "access": str(refresh.access_token),
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "is_staff": user.is_staff,
+            },
         }
-        data["user"] = {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "is_staff": user.is_staff,
-        }
-        return data
 
 
 class SIPRequestSerializer(serializers.Serializer):
