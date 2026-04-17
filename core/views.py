@@ -141,13 +141,21 @@ class SIPCalculateView(APIView):
         total_invested = monthly_investment * Decimal(years * 12)
         total_profit = future_value - total_invested
 
-        calculation = Calculation.objects.create(
-            user=request.user,
-            amount=monthly_investment,
-            rate=annual_interest_rate,
-            time=years,
-            result=future_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
-        )
+        calculation_id = None
+        save_warning = None
+        try:
+            calculation = Calculation.objects.create(
+                user=request.user,
+                amount=monthly_investment,
+                rate=annual_interest_rate,
+                time=years,
+                result=future_value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+            )
+            calculation_id = calculation.id
+        except Exception as exc:
+            # Return computed SIP values even if persistence fails in production.
+            logger.exception(f"Failed to save SIP calculation: {exc}")
+            save_warning = "SIP was calculated but could not be saved."
 
         chart_data = []
         for year in range(1, years + 1):
@@ -168,23 +176,24 @@ class SIPCalculateView(APIView):
                 }
             )
 
-        return Response(
-            {
-                "message": "SIP calculated successfully.",
-                "calculation_id": calculation.id,
-                "future_value": future_value.quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP
-                ),
-                "total_invested": total_invested.quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP
-                ),
-                "total_profit": total_profit.quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP
-                ),
-                "chart_data": chart_data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        response_payload = {
+            "message": "SIP calculated successfully.",
+            "calculation_id": calculation_id,
+            "future_value": future_value.quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            ),
+            "total_invested": total_invested.quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            ),
+            "total_profit": total_profit.quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            ),
+            "chart_data": chart_data,
+        }
+        if save_warning:
+            response_payload["warning"] = save_warning
+
+        return Response(response_payload, status=status.HTTP_200_OK)
 
 
 class TrackAffiliateView(APIView):
