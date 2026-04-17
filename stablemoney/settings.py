@@ -11,6 +11,11 @@ load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-change-me")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+IS_RENDER = bool(os.getenv("RENDER"))
+
+if IS_RENDER and DEBUG:
+    # Avoid exposing Django debug pages in hosted environments.
+    DEBUG = False
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -19,6 +24,12 @@ ALLOWED_HOSTS = [
     )
     if host.strip()
 ]
+
+render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
+if ".onrender.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".onrender.com")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
