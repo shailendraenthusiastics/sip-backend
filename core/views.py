@@ -10,7 +10,6 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import AffiliateClick, Calculation, Lead
 from .serializers import (
@@ -61,8 +60,13 @@ class SignupView(APIView):
         )
 
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
+class CustomTokenObtainPairView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = CustomTokenObtainPairSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
 class CurrentUserView(APIView):
