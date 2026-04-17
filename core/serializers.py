@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import AffiliateClick, Calculation, Lead
@@ -50,7 +51,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             self.fields[self.username_field].allow_blank = True
 
     def validate(self, attrs):
-        identifier = attrs.pop("username_or_email", None) or attrs.get("username")
+        identifier = (
+            attrs.pop("username_or_email", None) or attrs.get("username") or ""
+        ).strip()
         password = attrs.get("password")
 
         if not identifier:
@@ -62,14 +65,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             User.objects.filter(username__iexact=identifier).first()
             or User.objects.filter(email__iexact=identifier).first()
         )
-        if user is None:
+        if user is None or not user.check_password(password):
             raise serializers.ValidationError(
                 "No active account found with the given credentials."
             )
 
-        attrs[self.username_field] = user.username
-        attrs["password"] = password
-        data = super().validate(attrs)
+        if not user.is_active:
+            raise serializers.ValidationError("User account is disabled.")
+
+        refresh = RefreshToken.for_user(user)
+        data = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
         data["user"] = {
             "id": user.id,
             "username": user.username,
