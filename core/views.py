@@ -202,17 +202,30 @@ class TrackAffiliateView(APIView):
     def post(self, request):
         serializer = AffiliateClickSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        click = AffiliateClick.objects.create(
-            user=request.user, **serializer.validated_data
-        )
-        return Response(
-            {
-                "message": "Affiliate click tracked.",
-                "click_id": click.id,
-                "source": click.source,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        try:
+            click = AffiliateClick.objects.create(
+                user=request.user, **serializer.validated_data
+            )
+            return Response(
+                {
+                    "message": "Affiliate click tracked.",
+                    "tracked": True,
+                    "click_id": click.id,
+                    "source": click.source,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as exc:
+            logger.exception(f"Failed to save affiliate click: {exc}")
+            return Response(
+                {
+                    "message": "Affiliate click received but could not be stored.",
+                    "tracked": False,
+                    "click_id": None,
+                    "source": serializer.validated_data.get("source", ""),
+                },
+                status=status.HTTP_200_OK,
+            )
 
 
 class LeadCaptureView(APIView):
